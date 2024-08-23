@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home{% endblock %}
+{% block data %}
+
+{% if not user.is_authenticated %}
+<div class="container-fluid home-container py-5">
+    <div class="row d-flex justify-content-around align-items-center">
+        <div class="col-md-5 text-light text-center quote-box" data-aos="fade-up" data-aos-duration="1000">
+            <p class="h2">&QUOT; Big Journey Begins With Small Steps. &QUOT;</p>
+        </div>
+        <div class="col-md-5 col-sm-7 col-11 form-div p-4" data-aos="zoom-in" data-aos-duration="1500" data-aos-delay="1000">
+            <form action="" method="post" class="was-validated">
+                {% csrf_token %}
+                <div class="d-grid">
+                    <button class="btn btn-dark btn-lg">Register Here Candidate</button>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="fname">First Name</label>
+                    <input type="text" name="fname" class="form-control" id="fname" required>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="lname">Last Name</label>
+                    <input type="text" name="lname" class="form-control" id="lname" required>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="email">Email-ID</label>
+                    <input type="email" name="email" class="form-control" id="email" required>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="mobile">Mobile no.</label>
+                    <div class="input-group">
+                        <span class="input-group-text">+91</span>
+                        <input type="text" name="mobile" class="form-control" id="mobile" required>
+                    </div>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="password">Password</label>
+                    <input type="password" name="password" class="form-control" id="password" required>
+                </div>
+                <div class="form-check mt-2">
+                    <input type="checkbox" class="form-check-input" id="checker" onclick="PasswordChecker()">
+                    <label class="form-check-label" for="checker">See password</label>
+                </div>
+                <ul class="small text-muted mt-2">
+                    <li>At least 8 characters long.</li>
+                    <li>At least one capital letter.[A-Z]</li>
+                    <li>At least one small letter.[a-z]</li>
+                    <li>At least one digit.[0-9]</li>
+                    <li>At least one special character (',+-/\@#&*).</li>
+                </ul>
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-outline-dark">Register</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<section id="post" class="py-5">
+    <div class="container job-post-container">
+        <p class="h2 text-center mb-4">POST</p>
+        {% if user.is_staff %}
+        <div class="row mb-3">
+            <div class="col-lg-12 text-end">
+                <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#AddJobModal"><i class="fas fa-plus"></i> Post</button>
+            </div>
+        </div>
+        {% endif %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <form action="\search\" method="post" class="d-flex">
+                    {% csrf_token %}
+                    <input type="text" class="form-control rounded-pill" name="query" placeholder="Search jobs...">
+                    <button class="btn btn-dark rounded-pill ms-2 px-3">Search</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Job Details -->
+            <div class="col-lg-6 mb-4">
+                <div class="row g-3">
+                    {% now "Y-m-d" as todays_date %}
+                    {% for i in jobs %}
+                    <div class="col-lg-12">
+                        <div id="post-box" class="p-3 border rounded shadow-sm" data-bs-toggle="modal" data-bs-target="#showPostModal{{i.pk}}" onclick="showRecruiterLocation({{ i.user.latitude }}, {{ i.user.longitude }})">
+                            <h4>{{ i.user }}</h4>
+                            <span class="fs-5 fw-bold">{{ i.post }}</span>
+                            <span class="float-end fw-bold">₹ {{ i.salary }} /month</span>
+                            <br>
+                            <span>Posted on: {{ i.posted_on }}</span><br>
+                            <span>Open till: {{ i.upto }}</span><br>
+                            {% if i.upto|date:"Y-m-d" < todays_date %}
+                            <span class="text-danger fw-bold">Deadline reached. Cannot Apply.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="modal fade" id="showPostModal{{i.pk}}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h3 class="modal-title fw-bold">Post Details</h3>
+                                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <h5>{{i.post}}</h5>
+                                    <hr>
+                                    <h5>{{i.user}}</h5>
+                                    <hr>
+                                    <h5>Salary : ₹ {{i.salary}} per month</h5>
+                                    <hr>
+                                    <p><b>Job Description : </b><pre>{{ i.description }}</pre></p>
+                                    <hr>
+                                    <p><b>Posted on : </b>{{i.posted_on}}</p>
+                                    <p><b>Open till : </b>{{i.upto}}</p>
+                                </div>
+                                <div class="modal-footer">
+                                    {% if user.is_authenticated and not user.is_staff %}
+                                    <a class="btn btn-primary rounded-pill px-4" href="\apply\{{i.pk}}">Apply</a>
+                                    {% endif %}
+                                    <button class="btn btn-warning rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="col-lg-6">
+                <div id="map" class="rounded shadow-lg border border-dark" style="height: 500px;"></div>
+            </div>            
+        </div>
+    </div>
+</section>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBjB3r34W4Zcaa0uc7gHyQq_8dMo1xMxXY"></script>
+<script>
+    var map;
+    var marker;
+
+    function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: {lat: 20.5937, lng: 78.9629},
+            zoom: 5,
+            styles: [
+                {elementType: 'geometry', stylers: [{color: '#ebe3cd'}]},
+                {elementType: 'labels.text.fill', stylers: [{color: '#523735'}]},
+                {elementType: 'labels.text.stroke', stylers: [{color: '#f5f1e6'}]},
+                {featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{color: '#c9b2a6'}]},
+                {featureType: 'administrative.land_parcel', elementType: 'geometry.stroke', stylers: [{color: '#dcd2be'}]},
+                {featureType: 'administrative.land_parcel', elementType: 'labels.text.fill', stylers: [{color: '#ae9e90'}]},
+                {featureType: 'landscape.natural', elementType: 'geometry', stylers: [{color: '#dfd2ae'}]},
+                {featureType: 'poi', elementType: 'geometry', stylers: [{color: '#dfd2ae'}]},
+                {featureType: 'poi', elementType: 'labels.text.fill', stylers: [{color: '#93817c'}]},
+                {featureType: 'poi.park', elementType: 'geometry.fill', stylers: [{color: '#a5b076'}]},
+                {featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{color: '#447530'}]},
+                {featureType: 'road', elementType: 'geometry', stylers: [{color: '#f5f1e6'}]},
+                {featureType: 'road.arterial', elementType: 'geometry', stylers: [{color: '#fdfcf8'}]},
+                {featureType: 'road.highway', elementType: 'geometry', stylers: [{color: '#f8c967'}]},
+                {featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{color: '#e9bc62'}]},
+                {featureType: 'road.highway.controlled_access', elementType: 'geometry', stylers: [{color: '#e98d58'}]},
+                {featureType: 'road.highway.controlled_access', elementType: 'geometry.stroke', stylers: [{color: '#db8555'}]},
+                {featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{color: '#806b63'}]},
+                {featureType: 'transit.line', elementType: 'geometry', stylers: [{color: '#dfd2ae'}]},
+                {featureType: 'transit.line', elementType: 'labels.text.fill', stylers: [{color: '#8f7d77'}]},
+                {featureType: 'transit.line', elementType: 'labels.text.stroke', stylers: [{color: '#ebe3cd'}]},
+                {featureType: 'transit.station', elementType: 'geometry', stylers: [{color: '#dfd2ae'}]},
+                {featureType: 'water', elementType: 'geometry.fill', stylers: [{color: '#b9d3c2'}]},
+                {featureType: 'water', elementType: 'labels.text.fill', stylers: [{color: '#92998d'}]}
+            ]
+        });
+    }
+
+    function showRecruiterLocation(latitude, longitude) {
+        var location = {lat: latitude, lng: longitude};
+        if (marker) {
+            marker.setMap(null);
+        }
+        marker = new google.maps.Marker({
+            position: location,
+            map: map,
+            animation: google.maps.Animation.DROP
+        });
+        map.setCenter(location);
+        map.setZoom(12);
+    }
+
+    window.onload = initMap;
+</script>
+
+<section class="feedback-section bg-dark text-light py-5" id="feedback">
+    <div class="container">
+        <p class="h2 text-center mb-4">FEEDBACK</p>
+        <div class="row d-flex justify-content-around">
+            <div class="col-lg-5 col-md-6 my-5" id="feed-scroll-container">
+                <div id="feed-scroll">
+                    {% for i in feedbacks %}
+                    <div class="feedback bg-secondary border rounded p-3 mb-3">
+                        <h3>{{ i.name }}</h3>
+                        <p>{{ i.feedback }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-lg-5 col-md-6">
+                <form action="\feedback\" method="post" class="p-3 bg-secondary rounded">
+                    {% csrf_token %}
+                    <div class="form-group mt-3">
+                        <label for="feed-name">Name</label>
+                        <input type="text" name="name" id="feed-name" class="form-control">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="feed-email">Email</label>
+                        <input type="email" name="email" id="feed-email" class="form-control">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="feed-feedback">Feedback</label>
+                        <textarea name="feedback" id="feed-feedback" class="form-control" rows="5"></textarea>
+                    </div>
+                    <div class="d-grid mt-3">
+                        <button class="btn btn-outline-light">Send</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    function PasswordChecker(){
+        var password = document.getElementById('password');
+        if(password.type === 'password'){
+            password.type = 'text';
+        }else{
+            password.type = 'password';
+        }
+    }
+</script>
+
+{% for message in messages %}
+    {% if message.tags == 'success' %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
+    <script>
+        swal('', '{{message}}', 'success');
+    </script>
+    {% else %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
+    <script>
+        swal('', '{{message}}', 'error');
+    </script>
+    {% endif %}
+{% endfor %}
+
+<!-- Add Job Modal -->
+<div class="modal fade" id="AddJobModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Post Job</h4>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="\addPost\" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-group mt-2">
+                        <label for="job-post" class="fw-bold">Post:</label>
+                        <input type="text" name="post" id="job-post" class="form-control">
+                    </div>
+                    <div class="form-group mt-2">
+                        <label for="job-salary" class="fw-bold">Salary:</label>
+                        <input type="text" name="salary" id="job-salary" class="form-control">
+                    </div>
+                    <div class="form-group mt-2">
+                        <label for="job-deadline" class="fw-bold">Deadline:</label>
+                        <input type="date" name="upto" id="job-deadline" class="form-control">
+                    </div>
+                    <div class="form-group mt-2">
+                        <label for="job-description" class="fw-bold">Job Description:</label>
+                        <textarea name="description" id="job-description" cols="30" rows="4" class="form-control"></textarea>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-outline-dark">Post</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock data %}

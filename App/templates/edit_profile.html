@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Edit Profile{% endblock %}
+{% block data %}
+<div class="container">
+    <h1>Edit Profile</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ user_form.as_p }}
+        {{ profile_form.as_p }}
+
+        <div class="form-group">
+            <label for="address">Address</label>
+            <input type="text" id="address" name="address" class="form-control" value="{{ profile.address }}" placeholder="Enter your address">
+        </div>
+
+        <!-- Hidden inputs to store latitude and longitude -->
+        <input type="hidden" id="latitude" name="latitude" value="{{ profile.latitude }}">
+        <input type="hidden" id="longitude" name="longitude" value="{{ profile.longitude }}">
+
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+
+    <!-- Map Container -->
+    <div id="map" style="height: 400px; width: 100%; margin-top: 20px;"></div>
+</div>
+
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
+<script>
+    function initMap() {
+        const map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: -34.397, lng: 150.644 }, // Default center
+            zoom: 8
+        });
+
+        const input = document.getElementById('address');
+        const autocomplete = new google.maps.places.Autocomplete(input);
+
+        autocomplete.addListener('place_changed', function () {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) {
+                alert("No details available for input: '" + place.name + "'");
+                return;
+            }
+
+            map.setCenter(place.geometry.location);
+            map.setZoom(15);
+
+            document.getElementById('latitude').value = place.geometry.location.lat();
+            document.getElementById('longitude').value = place.geometry.location.lng();
+
+            new google.maps.Marker({
+                map: map,
+                position: place.geometry.location
+            });
+        });
+
+        const initialAddress = "{{ profile.address|escapejs }}";
+        if (initialAddress) {
+            geocodeAddress(initialAddress);
+        }
+
+        function geocodeAddress(address) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ 'address': address }, function (results, status) {
+                if (status === 'OK') {
+                    map.setCenter(results[0].geometry.location);
+                    map.setZoom(15);
+
+                    document.getElementById('latitude').value = results[0].geometry.location.lat();
+                    document.getElementById('longitude').value = results[0].geometry.location.lng();
+
+                    new google.maps.Marker({
+                        map: map,
+                        position: results[0].geometry.location
+                    });
+                } else {
+                    alert('Geocode was not successful for the following reason: ' + status);
+                }
+            });
+        }
+    }
+
+    window.onload = initMap;
+</script>
+{% endblock %}
